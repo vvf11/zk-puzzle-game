@@ -1,75 +1,152 @@
-class ZKPuzzleGame {
+class ZKTreasureHunt {
     constructor() {
         this.score = 0;
-        this.currentPuzzle = null;
+        this.level = 1;
+        this.treasure = null;
+        this.hints = [];
         this.proof = null;
+        this.maxLevel = 5;
     }
 
-    generatePuzzle() {
-        // Генерируем случайную математическую задачу
-        const num1 = Math.floor(Math.random() * 100);
-        const num2 = Math.floor(Math.random() * 100);
-        const operation = ['+', '-', '*'][Math.floor(Math.random() * 3)];
+    generateLevel() {
+        // Генерируем координаты сокровища
+        const x = Math.floor(Math.random() * 100);
+        const y = Math.floor(Math.random() * 100);
         
-        let answer;
-        switch(operation) {
-            case '+':
-                answer = num1 + num2;
-                break;
-            case '-':
-                answer = num1 - num2;
-                break;
-            case '*':
-                answer = num1 * num2;
-                break;
-        }
-
-        this.currentPuzzle = {
-            num1,
-            num2,
-            operation,
-            answer
+        // Создаем математическую головоломку для нахождения координат
+        const puzzle = this.generatePuzzle(x, y);
+        
+        this.treasure = { x, y };
+        this.hints = puzzle.hints;
+        
+        return {
+            level: this.level,
+            hints: puzzle.hints,
+            maxAttempts: 3
         };
-
-        return `Решите: ${num1} ${operation} ${num2} = ?`;
     }
 
-    async verifySolution(userAnswer) {
-        if (!this.currentPuzzle) {
-            throw new Error('Нет активной головоломки');
+    generatePuzzle(x, y) {
+        const hints = [];
+        
+        // Генерируем подсказки в зависимости от уровня
+        switch(this.level) {
+            case 1:
+                hints.push(`Сумма координат равна ${x + y}`);
+                hints.push(`Произведение координат равно ${x * y}`);
+                break;
+            case 2:
+                hints.push(`X больше Y на ${x - y}`);
+                hints.push(`Сумма цифр X равна ${this.sumDigits(x)}`);
+                break;
+            case 3:
+                hints.push(`X делится на ${this.getDivisors(x).join(', ')}`);
+                hints.push(`Y является ${this.isPrime(y) ? 'простым' : 'составным'} числом`);
+                break;
+            case 4:
+                hints.push(`X в двоичной системе: ${x.toString(2)}`);
+                hints.push(`Y в шестнадцатеричной системе: ${y.toString(16)}`);
+                break;
+            case 5:
+                hints.push(`X является ${this.isFibonacci(x) ? 'числом Фибоначчи' : 'не является числом Фибоначчи'}`);
+                hints.push(`Y является ${this.isPerfectSquare(y) ? 'квадратом целого числа' : 'не является квадратом целого числа'}`);
+                break;
+        }
+        
+        return { hints };
+    }
+
+    async checkSolution(userX, userY) {
+        if (!this.treasure) {
+            throw new Error('Игра не инициализирована');
         }
 
-        if (userAnswer === this.currentPuzzle.answer) {
+        const isCorrect = userX === this.treasure.x && userY === this.treasure.y;
+        
+        if (isCorrect) {
             // Генерируем ZK доказательство
             const proof = await this.generateProof({
-                num1: this.currentPuzzle.num1,
-                num2: this.currentPuzzle.num2,
-                operation: this.currentPuzzle.operation,
-                answer: userAnswer
+                level: this.level,
+                x: userX,
+                y: userY,
+                expectedX: this.treasure.x,
+                expectedY: this.treasure.y
             });
 
             this.proof = proof;
-            this.score += 10;
-            return true;
+            this.score += this.level * 100;
+            
+            if (this.level < this.maxLevel) {
+                this.level++;
+            }
+            
+            return {
+                success: true,
+                score: this.score,
+                level: this.level,
+                proof
+            };
         }
 
-        return false;
+        return {
+            success: false,
+            message: 'Неверные координаты! Попробуйте еще раз.'
+        };
     }
 
     async generateProof(data) {
         // Здесь будет интеграция с SP1
-        // TODO: Реализовать генерацию доказательства
         return {
             proof: 'dummy_proof',
-            publicInputs: [data.num1, data.num2, data.answer]
+            publicInputs: [data.level, data.x, data.y]
         };
+    }
+
+    // Вспомогательные функции
+    sumDigits(num) {
+        return num.toString().split('').reduce((a, b) => parseInt(a) + parseInt(b), 0);
+    }
+
+    getDivisors(num) {
+        const divisors = [];
+        for (let i = 2; i <= num; i++) {
+            if (num % i === 0) divisors.push(i);
+        }
+        return divisors;
+    }
+
+    isPrime(num) {
+        for (let i = 2; i <= Math.sqrt(num); i++) {
+            if (num % i === 0) return false;
+        }
+        return num > 1;
+    }
+
+    isFibonacci(num) {
+        let a = 0, b = 1;
+        while (b <= num) {
+            if (b === num) return true;
+            const temp = a + b;
+            a = b;
+            b = temp;
+        }
+        return false;
+    }
+
+    isPerfectSquare(num) {
+        const sqrt = Math.sqrt(num);
+        return Math.floor(sqrt) === sqrt;
     }
 
     getScore() {
         return this.score;
     }
+
+    getLevel() {
+        return this.level;
+    }
 }
 
 // Инициализация игры
-const game = new ZKPuzzleGame();
+const game = new ZKTreasureHunt();
 export default game; 

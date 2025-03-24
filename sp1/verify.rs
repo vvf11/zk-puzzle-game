@@ -1,25 +1,22 @@
 use sp1_core::{SP1Program, SP1Verifier};
 
 #[derive(Debug)]
-pub struct PuzzleInput {
-    pub num1: u32,
-    pub num2: u32,
-    pub operation: char,
-    pub answer: u32,
+pub struct TreasureInput {
+    pub level: u32,
+    pub x: u32,
+    pub y: u32,
+    pub expected_x: u32,
+    pub expected_y: u32,
 }
 
-impl SP1Program for PuzzleInput {
+impl SP1Program for TreasureInput {
     fn verify(&self) -> bool {
-        match self.operation {
-            '+' => self.num1 + self.num2 == self.answer,
-            '-' => self.num1 - self.num2 == self.answer,
-            '*' => self.num1 * self.num2 == self.answer,
-            _ => false,
-        }
+        // Проверяем, что координаты совпадают с ожидаемыми
+        self.x == self.expected_x && self.y == self.expected_y
     }
 }
 
-pub fn verify_puzzle(input: PuzzleInput) -> bool {
+pub fn verify_treasure(input: TreasureInput) -> bool {
     let verifier = SP1Verifier::new();
     verifier.verify(&input)
 }
@@ -29,24 +26,26 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_addition() {
-        let input = PuzzleInput {
-            num1: 5,
-            num2: 3,
-            operation: '+',
-            answer: 8,
+    fn test_correct_coordinates() {
+        let input = TreasureInput {
+            level: 1,
+            x: 5,
+            y: 3,
+            expected_x: 5,
+            expected_y: 3,
         };
-        assert!(verify_puzzle(input));
+        assert!(verify_treasure(input));
     }
 
     #[test]
-    fn test_multiplication() {
-        let input = PuzzleInput {
-            num1: 4,
-            num2: 6,
-            operation: '*',
-            answer: 24,
+    fn test_incorrect_coordinates() {
+        let input = TreasureInput {
+            level: 1,
+            x: 5,
+            y: 3,
+            expected_x: 4,
+            expected_y: 3,
         };
-        assert!(verify_puzzle(input));
+        assert!(!verify_treasure(input));
     }
 } 

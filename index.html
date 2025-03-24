@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZK Puzzle Game</title>
+    <title>ZK Treasure Hunt</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -11,17 +11,36 @@
             margin: 0 auto;
             padding: 20px;
             background-color: #f0f0f0;
+            background-image: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80');
+            background-size: cover;
+            background-position: center;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
         }
         .game-container {
-            background-color: white;
+            background-color: rgba(0, 0, 0, 0.8);
             padding: 20px;
             border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            backdrop-filter: blur(5px);
         }
-        .puzzle {
+        .level-info {
             font-size: 24px;
             margin: 20px 0;
             text-align: center;
+            color: #ffd700;
+        }
+        .hints {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+        }
+        .hint {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 5px;
         }
         .input-group {
             display: flex;
@@ -33,41 +52,94 @@
             padding: 10px;
             font-size: 18px;
             width: 100px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 1px solid #ffd700;
+            color: white;
+            border-radius: 5px;
+        }
+        input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
         }
         button {
             padding: 10px 20px;
             font-size: 18px;
-            background-color: #4CAF50;
-            color: white;
+            background-color: #ffd700;
+            color: black;
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            transition: all 0.3s ease;
         }
         button:hover {
-            background-color: #45a049;
+            background-color: #ffed4a;
+            transform: scale(1.05);
         }
         .score {
             font-size: 20px;
             text-align: center;
             margin: 20px 0;
+            color: #ffd700;
         }
         .proof {
             margin-top: 20px;
             padding: 10px;
-            background-color: #f8f8f8;
+            background-color: rgba(255, 255, 255, 0.1);
             border-radius: 5px;
+            font-family: monospace;
+        }
+        .treasure-map {
+            width: 100%;
+            height: 300px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            margin: 20px 0;
+            position: relative;
+        }
+        .treasure-marker {
+            width: 20px;
+            height: 20px;
+            background-color: #ffd700;
+            border-radius: 50%;
+            position: absolute;
+            transform: translate(-50%, -50%);
+            display: none;
+        }
+        .success-message {
+            color: #4CAF50;
+            text-align: center;
+            font-size: 24px;
+            margin: 20px 0;
+            display: none;
+        }
+        .error-message {
+            color: #f44336;
+            text-align: center;
+            font-size: 18px;
+            margin: 10px 0;
+            display: none;
         }
     </style>
 </head>
 <body>
     <div class="game-container">
-        <h1>ZK Puzzle Game</h1>
-        <div class="score">Счет: <span id="score">0</span></div>
-        <div class="puzzle" id="puzzle"></div>
-        <div class="input-group">
-            <input type="number" id="answer" placeholder="Ваш ответ">
-            <button onclick="checkAnswer()">Проверить</button>
+        <h1>ZK Treasure Hunt</h1>
+        <div class="level-info">Уровень: <span id="level">1</span></div>
+        <div class="score">Сокровища: <span id="score">0</span></div>
+        
+        <div class="hints" id="hints"></div>
+        
+        <div class="treasure-map" id="map">
+            <div class="treasure-marker" id="marker"></div>
         </div>
+        
+        <div class="input-group">
+            <input type="number" id="x" placeholder="X координата">
+            <input type="number" id="y" placeholder="Y координата">
+            <button onclick="checkSolution()">Найти сокровище</button>
+        </div>
+        
+        <div class="success-message" id="success">Сокровище найдено!</div>
+        <div class="error-message" id="error"></div>
         <div class="proof" id="proof"></div>
     </div>
 
@@ -76,26 +148,43 @@
         
         window.game = game;
         
-        function updatePuzzle() {
-            document.getElementById('puzzle').textContent = game.generatePuzzle();
+        function updateLevel() {
+            const levelData = game.generateLevel();
+            document.getElementById('level').textContent = levelData.level;
+            document.getElementById('hints').innerHTML = levelData.hints
+                .map(hint => `<div class="hint">${hint}</div>`)
+                .join('');
+            document.getElementById('success').style.display = 'none';
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('marker').style.display = 'none';
         }
         
-        window.checkAnswer = async function() {
-            const answer = parseInt(document.getElementById('answer').value);
-            const result = await game.verifySolution(answer);
+        window.checkSolution = async function() {
+            const x = parseInt(document.getElementById('x').value);
+            const y = parseInt(document.getElementById('y').value);
             
-            if (result) {
-                document.getElementById('score').textContent = game.getScore();
+            const result = await game.checkSolution(x, y);
+            
+            if (result.success) {
+                document.getElementById('score').textContent = result.score;
                 document.getElementById('proof').textContent = 
-                    `Доказательство сгенерировано: ${JSON.stringify(game.proof)}`;
-                updatePuzzle();
+                    `Доказательство сгенерировано: ${JSON.stringify(result.proof)}`;
+                document.getElementById('success').style.display = 'block';
+                document.getElementById('marker').style.display = 'block';
+                document.getElementById('marker').style.left = `${game.treasure.x}%`;
+                document.getElementById('marker').style.top = `${game.treasure.y}%`;
+                
+                setTimeout(() => {
+                    updateLevel();
+                }, 2000);
             } else {
-                alert('Неверный ответ! Попробуйте еще раз.');
+                document.getElementById('error').textContent = result.message;
+                document.getElementById('error').style.display = 'block';
             }
         };
         
         // Инициализация игры
-        updatePuzzle();
+        updateLevel();
     </script>
 </body>
 </html>
