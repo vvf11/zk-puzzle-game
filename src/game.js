@@ -107,21 +107,45 @@ class Circuit {
             item.addEventListener('dragstart', (e) => {
                 const gateType = item.getAttribute('data-gate');
                 e.dataTransfer.setData('text/plain', gateType);
+                // Устанавливаем прозрачность при перетаскивании
+                item.style.opacity = '0.5';
+            });
+
+            item.addEventListener('dragend', (e) => {
+                // Возвращаем прозрачность
+                item.style.opacity = '1';
             });
         });
 
         // Обработка событий на рабочей области
         this.board.addEventListener('dragover', (e) => {
             e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+            // Добавляем визуальный индикатор возможности дропа
+            this.board.style.backgroundColor = 'rgba(46, 204, 113, 0.1)';
+        });
+
+        this.board.addEventListener('dragleave', (e) => {
+            // Убираем визуальный индикатор
+            this.board.style.backgroundColor = 'white';
         });
 
         this.board.addEventListener('drop', (e) => {
             e.preventDefault();
+            // Убираем визуальный индикатор
+            this.board.style.backgroundColor = 'white';
+            
             const gateType = e.dataTransfer.getData('text/plain');
+            if (!gateType) return;
+
             const rect = this.board.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            this.addGate(gateType, x, y);
+            const x = e.clientX - rect.left - 30; // Центрируем вентиль по курсору
+            const y = e.clientY - rect.top - 30;
+            
+            // Проверяем, что координаты внутри рабочей области
+            if (x >= 0 && y >= 0 && x <= rect.width - 60 && y <= rect.height - 60) {
+                this.addGate(gateType, x, y);
+            }
         });
 
         // Обработка перемещения вентилей
@@ -178,7 +202,25 @@ class Circuit {
         // Добавляем обработчики для перемещения вентиля
         visual.addEventListener('mousedown', (e) => {
             if (e.target.classList.contains('connection-point')) return;
-            this.draggedGate = {gate, offsetX: e.offsetX, offsetY: e.offsetY};
+            
+            const rect = visual.getBoundingClientRect();
+            this.draggedGate = {
+                gate,
+                offsetX: e.clientX - rect.left,
+                offsetY: e.clientY - rect.top
+            };
+            
+            // Добавляем стиль для перетаскивания
+            visual.style.zIndex = '1000';
+            visual.style.opacity = '0.8';
+        });
+
+        visual.addEventListener('mouseup', () => {
+            if (this.draggedGate && this.draggedGate.gate === gate) {
+                visual.style.zIndex = '1';
+                visual.style.opacity = '1';
+                this.draggedGate = null;
+            }
         });
 
         // Добавляем обработчики для создания проводов
@@ -195,6 +237,7 @@ class Circuit {
         });
 
         this.board.appendChild(visual);
+        return gate;
     }
 
     addWire(start, end) {
@@ -316,29 +359,57 @@ class Circuit {
 class ZKLogicGame {
     constructor() {
         this.circuit = new Circuit();
-        this.level = 1;
-        this.proof = null;
+        this.currentLevel = 1;
+        this.verifyButton = document.getElementById('verify-btn');
+        this.setupEventListeners();
     }
 
-    async verifyCircuit() {
-        const evaluation = this.circuit.evaluate();
+    setupEventListeners() {
+        this.verifyButton.addEventListener('click', () => this.verifyCircuit());
         
-        // Генерируем ZK доказательство
-        const proof = await this.generateProof({
-            level: this.level,
-            circuit: evaluation
+        // Скрываем подсказки после первого взаимодействия
+        document.addEventListener('dragstart', () => {
+            const hints = document.querySelectorAll('.tooltip');
+            hints.forEach(hint => {
+                hint.style.opacity = '0';
+                setTimeout(() => hint.style.display = 'none', 300);
+            });
         });
+    }
 
-        this.proof = proof;
-        return {
-            success: this.checkCircuit(evaluation),
-            proof
-        };
+    verifyCircuit() {
+        const result = this.circuit.evaluate();
+        if (this.checkCircuit(result)) {
+            this.showSuccess();
+            setTimeout(() => this.nextLevel(), 1000);
+        } else {
+            this.showError();
+        }
+    }
+
+    showSuccess() {
+        this.verifyButton.classList.add('success');
+        this.verifyButton.textContent = 'Правильно! Переход на следующий уровень...';
+    }
+
+    showError() {
+        this.verifyButton.classList.add('error');
+        this.verifyButton.textContent = 'Неправильно, попробуйте еще раз';
+        setTimeout(() => {
+            this.verifyButton.classList.remove('error');
+            this.verifyButton.textContent = 'Проверить решение';
+        }, 2000);
+    }
+
+    nextLevel() {
+        this.currentLevel++;
+        // Обновляем интерфейс для следующего уровня
+        // TODO: Реализовать переход на следующий уровень
     }
 
     checkCircuit(evaluation) {
         // Проверяем, соответствует ли схема требованиям уровня
-        switch(this.level) {
+        switch(this.currentLevel) {
             case 1:
                 // Проверяем реализацию AND
                 const andGate = evaluation.find(gate => gate.type === 'AND');
@@ -347,14 +418,6 @@ class ZKLogicGame {
             default:
                 return false;
         }
-    }
-
-    async generateProof(data) {
-        // Здесь будет интеграция с SP1
-        return {
-            proof: 'dummy_proof',
-            publicInputs: [data.level, JSON.stringify(data.circuit)]
-        };
     }
 }
 

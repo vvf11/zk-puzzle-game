@@ -6,12 +6,13 @@
     <title>ZK Logic Gates</title>
     <style>
         :root {
-            --primary-color: #2c3e50;
-            --secondary-color: #3498db;
+            --primary-color: #4a90e2;
+            --secondary-color: #34495e;
             --success-color: #2ecc71;
             --error-color: #e74c3c;
             --background-color: #ecf0f1;
             --gate-color: #34495e;
+            --text-color: #2c3e50;
         }
 
         body {
@@ -45,8 +46,13 @@
             margin: 5px 0;
             background: var(--background-color);
             border-radius: 5px;
-            cursor: move;
+            cursor: grab;
             transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        .gate-item:active {
+            cursor: grabbing;
         }
 
         .gate-item:hover {
@@ -68,6 +74,7 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             position: relative;
             overflow: hidden;
+            transition: background-color 0.3s ease;
         }
 
         #circuit-board {
@@ -82,7 +89,7 @@
             height: 60px;
             background: var(--gate-color);
             border-radius: 5px;
-            cursor: move;
+            cursor: grab;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -90,6 +97,19 @@
             font-weight: bold;
             user-select: none;
             z-index: 1;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .gate:active {
+            cursor: grabbing;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.3);
+        }
+
+        .gate.dragging {
+            opacity: 0.8;
+            transform: scale(1.05);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.3);
         }
 
         .input-node {
@@ -168,20 +188,35 @@
         }
 
         .verify-button {
-            width: 100%;
-            padding: 15px;
-            background: var(--success-color);
+            background: var(--primary-color);
             color: white;
             border: none;
-            border-radius: 5px;
+            padding: 12px 24px;
+            border-radius: 4px;
             cursor: pointer;
-            font-size: 1.1em;
+            font-size: 1em;
+            margin-top: 20px;
             transition: all 0.3s ease;
         }
 
         .verify-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            background: var(--success-color);
+        }
+
+        .verify-button.success {
+            background: var(--success-color);
+            transform: scale(1.05);
+        }
+
+        .verify-button.error {
+            background: var(--error-color);
+            animation: shake 0.5s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
         }
 
         .proof-info {
@@ -202,6 +237,36 @@
         .success {
             animation: pulse 0.5s ease;
         }
+
+        .tooltip {
+            background: var(--secondary-color);
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-size: 0.9em;
+        }
+
+        .workspace-hint {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 3;
+            background: rgba(0, 0, 0, 0.7);
+        }
+
+        .gate-desc {
+            font-size: 0.8em;
+            color: var(--text-color);
+            margin-top: 4px;
+        }
+
+        .level-desc {
+            color: var(--text-color);
+            margin: 10px 0;
+            line-height: 1.4;
+        }
     </style>
 </head>
 <body>
@@ -209,37 +274,30 @@
         <!-- Панель инструментов -->
         <div class="toolbox">
             <h2>Логические вентили</h2>
+            <div class="tooltip">Перетащите вентили на рабочую область</div>
             <div class="gate-item" draggable="true" data-gate="AND">
-                <svg class="gate-icon" viewBox="0 0 100 100">
-                    <path d="M20,20 L20,80 Q60,80 60,50 Q60,20 20,20" fill="none" stroke="currentColor" stroke-width="2"/>
-                </svg>
-                AND
+                <div class="gate-icon">AND</div>
+                <div class="gate-desc">Логическое И</div>
             </div>
             <div class="gate-item" draggable="true" data-gate="OR">
-                <svg class="gate-icon" viewBox="0 0 100 100">
-                    <path d="M20,20 Q40,50 20,80 Q80,80 60,50 Q80,20 20,20" fill="none" stroke="currentColor" stroke-width="2"/>
-                </svg>
-                OR
+                <div class="gate-icon">OR</div>
+                <div class="gate-desc">Логическое ИЛИ</div>
             </div>
             <div class="gate-item" draggable="true" data-gate="NOT">
-                <svg class="gate-icon" viewBox="0 0 100 100">
-                    <path d="M20,20 L60,50 L20,80 Z" fill="none" stroke="currentColor" stroke-width="2"/>
-                    <circle cx="65" cy="50" r="5" fill="currentColor"/>
-                </svg>
-                NOT
+                <div class="gate-icon">NOT</div>
+                <div class="gate-desc">Логическое НЕ</div>
             </div>
             <div class="gate-item" draggable="true" data-gate="XOR">
-                <svg class="gate-icon" viewBox="0 0 100 100">
-                    <path d="M25,20 Q45,50 25,80 Q85,80 65,50 Q85,20 25,20" fill="none" stroke="currentColor" stroke-width="2"/>
-                    <path d="M20,20 Q40,50 20,80" fill="none" stroke="currentColor" stroke-width="2"/>
-                </svg>
-                XOR
+                <div class="gate-icon">XOR</div>
+                <div class="gate-desc">Исключающее ИЛИ</div>
             </div>
         </div>
 
         <!-- Рабочая область -->
-        <div class="workspace">
-            <div id="circuit-board"></div>
+        <div id="circuit-board" class="workspace">
+            <div class="tooltip workspace-hint">
+                Соедините входные узлы с вентилями, кликая на точки подключения
+            </div>
         </div>
 
         <!-- Панель информации -->
@@ -248,6 +306,8 @@
                 <h2 class="level-title">Уровень 1</h2>
                 <p class="level-description">Создайте схему, реализующую операцию AND для двух входных сигналов.</p>
             </div>
+
+            <div class="tooltip">Схема должна соответствовать таблице истинности:</div>
 
             <table class="truth-table">
                 <thead>
@@ -281,7 +341,7 @@
                 </tbody>
             </table>
 
-            <button class="verify-button" onclick="verifyCircuit()">Проверить решение</button>
+            <button id="verify-btn" class="verify-button">Проверить решение</button>
 
             <div class="proof-info" id="proof-output"></div>
         </div>
