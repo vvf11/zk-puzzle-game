@@ -39,6 +39,7 @@ class LogicGate {
             input.className = 'connection-point input';
             input.style.left = '-5px';
             input.style.top = `${(i + 1) * (60 / (inputCount + 1))}px`;
+            input.dataset.index = i;
             this.inputPoints.push(input);
             gate.appendChild(input);
         }
@@ -63,6 +64,40 @@ class Circuit {
         this.draggedGate = null;
         this.wireStart = null;
         this.setupEventListeners();
+        this.addInputNodes();
+    }
+
+    addInputNodes() {
+        // Добавляем входные узлы (0 и 1)
+        const input0 = new LogicGate('INPUT', 50, 50);
+        input0.value = 0;
+        const input1 = new LogicGate('INPUT', 50, 150);
+        input1.value = 1;
+        
+        const visual0 = this.createInputNode(input0);
+        const visual1 = this.createInputNode(input1);
+        
+        this.board.appendChild(visual0);
+        this.board.appendChild(visual1);
+    }
+
+    createInputNode(input) {
+        const node = document.createElement('div');
+        node.className = 'gate input-node';
+        node.textContent = input.value;
+        node.style.left = `${input.x}px`;
+        node.style.top = `${input.y}px`;
+        node.style.backgroundColor = input.value ? '#2ecc71' : '#e74c3c';
+
+        const output = document.createElement('div');
+        output.className = 'connection-point output';
+        output.style.right = '-5px';
+        output.style.top = '30px';
+        input.outputPoint = output;
+        node.appendChild(output);
+
+        input.element = node;
+        return node;
     }
 
     setupEventListeners() {
@@ -87,6 +122,51 @@ class Circuit {
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
             this.addGate(gateType, x, y);
+        });
+
+        // Обработка перемещения вентилей
+        document.addEventListener('mousemove', (e) => {
+            if (this.draggedGate) {
+                const rect = this.board.getBoundingClientRect();
+                const x = e.clientX - rect.left - this.draggedGate.offsetX;
+                const y = e.clientY - rect.top - this.draggedGate.offsetY;
+                
+                this.draggedGate.gate.x = x;
+                this.draggedGate.gate.y = y;
+                this.draggedGate.gate.element.style.left = `${x}px`;
+                this.draggedGate.gate.element.style.top = `${y}px`;
+                
+                // Обновляем провода
+                this.updateWires();
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (this.draggedGate) {
+                this.draggedGate = null;
+            }
+            if (this.wireStart) {
+                this.wireStart = null;
+            }
+        });
+
+        this.board.addEventListener('mousemove', (e) => {
+            if (this.wireStart) {
+                // Обновляем временный провод
+                this.updateTemporaryWire(e);
+            }
+        });
+
+        this.board.addEventListener('click', (e) => {
+            if (this.wireStart && e.target.classList.contains('connection-point')) {
+                const endPoint = e.target;
+                const endGate = this.findGateByPoint(endPoint);
+                
+                if (endGate && this.canConnect(this.wireStart, {gate: endGate, point: endPoint})) {
+                    this.addWire(this.wireStart, {gate: endGate, point: endPoint});
+                }
+                this.wireStart = null;
+            }
         });
     }
 
@@ -170,6 +250,66 @@ class Circuit {
             inputs: gate.inputs,
             output: gate.output
         }));
+    }
+
+    findGateByPoint(point) {
+        return this.gates.find(gate => 
+            gate.inputPoints.includes(point) || gate.outputPoint === point
+        );
+    }
+
+    canConnect(start, end) {
+        // Проверяем, что соединяем выход с входом
+        return (start.isInput && !end.isInput) || (!start.isInput && end.isInput);
+    }
+
+    updateWires() {
+        this.wires.forEach(wire => {
+            const startRect = wire.start.point.getBoundingClientRect();
+            const endRect = wire.end.point.getBoundingClientRect();
+            const boardRect = this.board.getBoundingClientRect();
+
+            const startX = startRect.left - boardRect.left;
+            const startY = startRect.top - boardRect.top;
+            const endX = endRect.left - boardRect.left;
+            const endY = endRect.top - boardRect.top;
+
+            const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
+            const angle = Math.atan2(endY - startY, endX - startX);
+
+            wire.element.style.width = `${length}px`;
+            wire.element.style.left = `${startX}px`;
+            wire.element.style.top = `${startY}px`;
+            wire.element.style.transform = `rotate(${angle}rad)`;
+        });
+    }
+
+    updateTemporaryWire(e) {
+        if (!this.wireStart) return;
+
+        const rect = this.board.getBoundingClientRect();
+        const startRect = this.wireStart.point.getBoundingClientRect();
+        
+        const startX = startRect.left - rect.left;
+        const startY = startRect.top - rect.top;
+        const endX = e.clientX - rect.left;
+        const endY = e.clientY - rect.top;
+
+        let tempWire = document.getElementById('temp-wire');
+        if (!tempWire) {
+            tempWire = document.createElement('div');
+            tempWire.id = 'temp-wire';
+            tempWire.className = 'wire temporary';
+            this.board.appendChild(tempWire);
+        }
+
+        const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
+        const angle = Math.atan2(endY - startY, endX - startX);
+
+        tempWire.style.width = `${length}px`;
+        tempWire.style.left = `${startX}px`;
+        tempWire.style.top = `${startY}px`;
+        tempWire.style.transform = `rotate(${angle}rad)`;
     }
 }
 
