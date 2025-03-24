@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZK Puzzle Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .game-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .puzzle {
+            font-size: 24px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        input {
+            padding: 10px;
+            font-size: 18px;
+            width: 100px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 18px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .score {
+            font-size: 20px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .proof {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f8f8f8;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>ZK Puzzle Game</h1>
+        <div class="score">Счет: <span id="score">0</span></div>
+        <div class="puzzle" id="puzzle"></div>
+        <div class="input-group">
+            <input type="number" id="answer" placeholder="Ваш ответ">
+            <button onclick="checkAnswer()">Проверить</button>
+        </div>
+        <div class="proof" id="proof"></div>
+    </div>
+
+    <script type="module">
+        import game from './src/game.js';
+        
+        window.game = game;
+        
+        function updatePuzzle() {
+            document.getElementById('puzzle').textContent = game.generatePuzzle();
+        }
+        
+        window.checkAnswer = async function() {
+            const answer = parseInt(document.getElementById('answer').value);
+            const result = await game.verifySolution(answer);
+            
+            if (result) {
+                document.getElementById('score').textContent = game.getScore();
+                document.getElementById('proof').textContent = 
+                    `Доказательство сгенерировано: ${JSON.stringify(game.proof)}`;
+                updatePuzzle();
+            } else {
+                alert('Неверный ответ! Попробуйте еще раз.');
+            }
+        };
+        
+        // Инициализация игры
+        updatePuzzle();
+    </script>
+</body>
+</html>
