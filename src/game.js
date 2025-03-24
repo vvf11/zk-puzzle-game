@@ -85,18 +85,19 @@ class Circuit {
         const node = document.createElement('div');
         node.className = 'gate input-node';
         node.textContent = input.value;
+        node.setAttribute('data-value', input.value);
         node.style.left = `${input.x}px`;
         node.style.top = `${input.y}px`;
-        node.style.backgroundColor = input.value ? '#2ecc71' : '#e74c3c';
 
         const output = document.createElement('div');
         output.className = 'connection-point output';
         output.style.right = '-5px';
-        output.style.top = '30px';
+        output.style.top = '20px';
         input.outputPoint = output;
         node.appendChild(output);
 
         input.element = node;
+        this.gates.push(input); // Добавляем входной узел в список вентилей
         return node;
     }
 
@@ -422,8 +423,10 @@ class ZKLogicGame {
 }
 
 // Инициализация игры
-const game = new ZKLogicGame();
-window.game = game;
+document.addEventListener('DOMContentLoaded', () => {
+    const game = new ZKLogicGame();
+    window.game = game;
+});
 
 // Добавляем глобальную функцию для проверки схемы
 window.verifyCircuit = async function() {
