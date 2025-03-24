@@ -3,188 +3,271 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZK Treasure Hunt</title>
+    <title>ZK Logic Gates</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f0f0f0;
-            background-image: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80');
-            background-size: cover;
-            background-position: center;
-            color: white;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --success-color: #2ecc71;
+            --error-color: #e74c3c;
+            --background-color: #ecf0f1;
+            --gate-color: #34495e;
         }
-        .game-container {
-            background-color: rgba(0, 0, 0, 0.8);
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--background-color);
+            color: var(--primary-color);
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 200px 1fr 300px;
+            height: 100vh;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        /* Панель инструментов */
+        .toolbox {
+            background: white;
             padding: 20px;
             border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-            backdrop-filter: blur(5px);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-        .level-info {
-            font-size: 24px;
-            margin: 20px 0;
-            text-align: center;
-            color: #ffd700;
-        }
-        .hints {
-            margin: 20px 0;
-            padding: 15px;
-            background-color: rgba(255, 255, 255, 0.1);
-            border-radius: 5px;
-        }
-        .hint {
-            margin: 10px 0;
-            padding: 10px;
-            background-color: rgba(255, 255, 255, 0.05);
-            border-radius: 5px;
-        }
-        .input-group {
+
+        .gate-item {
             display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin: 20px 0;
-        }
-        input {
+            align-items: center;
             padding: 10px;
-            font-size: 18px;
-            width: 100px;
-            background-color: rgba(255, 255, 255, 0.1);
-            border: 1px solid #ffd700;
-            color: white;
+            margin: 5px 0;
+            background: var(--background-color);
             border-radius: 5px;
+            cursor: move;
+            transition: all 0.3s ease;
         }
-        input::placeholder {
-            color: rgba(255, 255, 255, 0.5);
+
+        .gate-item:hover {
+            transform: translateX(5px);
+            background: var(--secondary-color);
+            color: white;
         }
-        button {
-            padding: 10px 20px;
-            font-size: 18px;
-            background-color: #ffd700;
-            color: black;
+
+        .gate-icon {
+            width: 30px;
+            height: 30px;
+            margin-right: 10px;
+        }
+
+        /* Рабочая область */
+        .workspace {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        #circuit-board {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .gate {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: var(--gate-color);
+            border-radius: 5px;
+            cursor: move;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            user-select: none;
+        }
+
+        .connection-point {
+            width: 10px;
+            height: 10px;
+            background: var(--secondary-color);
+            border-radius: 50%;
+            position: absolute;
+            cursor: pointer;
+        }
+
+        .wire {
+            position: absolute;
+            background: var(--secondary-color);
+            height: 2px;
+            transform-origin: left center;
+        }
+
+        /* Панель информации */
+        .info-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .level-info {
+            margin-bottom: 20px;
+        }
+
+        .level-title {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+            color: var(--primary-color);
+        }
+
+        .level-description {
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .truth-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        .truth-table th,
+        .truth-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+
+        .truth-table th {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .verify-button {
+            width: 100%;
+            padding: 15px;
+            background: var(--success-color);
+            color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            font-size: 1.1em;
             transition: all 0.3s ease;
         }
-        button:hover {
-            background-color: #ffed4a;
-            transform: scale(1.05);
+
+        .verify-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
-        .score {
-            font-size: 20px;
-            text-align: center;
-            margin: 20px 0;
-            color: #ffd700;
-        }
-        .proof {
+
+        .proof-info {
             margin-top: 20px;
             padding: 10px;
-            background-color: rgba(255, 255, 255, 0.1);
+            background: #f7f9fc;
             border-radius: 5px;
             font-family: monospace;
         }
-        .treasure-map {
-            width: 100%;
-            height: 300px;
-            background-color: rgba(255, 255, 255, 0.1);
-            border-radius: 5px;
-            margin: 20px 0;
-            position: relative;
+
+        /* Анимации */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
         }
-        .treasure-marker {
-            width: 20px;
-            height: 20px;
-            background-color: #ffd700;
-            border-radius: 50%;
-            position: absolute;
-            transform: translate(-50%, -50%);
-            display: none;
-        }
-        .success-message {
-            color: #4CAF50;
-            text-align: center;
-            font-size: 24px;
-            margin: 20px 0;
-            display: none;
-        }
-        .error-message {
-            color: #f44336;
-            text-align: center;
-            font-size: 18px;
-            margin: 10px 0;
-            display: none;
+
+        .success {
+            animation: pulse 0.5s ease;
         }
     </style>
 </head>
 <body>
-    <div class="game-container">
-        <h1>ZK Treasure Hunt</h1>
-        <div class="level-info">Уровень: <span id="level">1</span></div>
-        <div class="score">Сокровища: <span id="score">0</span></div>
-        
-        <div class="hints" id="hints"></div>
-        
-        <div class="treasure-map" id="map">
-            <div class="treasure-marker" id="marker"></div>
+    <div class="container">
+        <!-- Панель инструментов -->
+        <div class="toolbox">
+            <h2>Логические вентили</h2>
+            <div class="gate-item" draggable="true" data-gate="AND">
+                <svg class="gate-icon" viewBox="0 0 100 100">
+                    <path d="M20,20 L20,80 Q60,80 60,50 Q60,20 20,20" fill="none" stroke="currentColor" stroke-width="2"/>
+                </svg>
+                AND
+            </div>
+            <div class="gate-item" draggable="true" data-gate="OR">
+                <svg class="gate-icon" viewBox="0 0 100 100">
+                    <path d="M20,20 Q40,50 20,80 Q80,80 60,50 Q80,20 20,20" fill="none" stroke="currentColor" stroke-width="2"/>
+                </svg>
+                OR
+            </div>
+            <div class="gate-item" draggable="true" data-gate="NOT">
+                <svg class="gate-icon" viewBox="0 0 100 100">
+                    <path d="M20,20 L60,50 L20,80 Z" fill="none" stroke="currentColor" stroke-width="2"/>
+                    <circle cx="65" cy="50" r="5" fill="currentColor"/>
+                </svg>
+                NOT
+            </div>
+            <div class="gate-item" draggable="true" data-gate="XOR">
+                <svg class="gate-icon" viewBox="0 0 100 100">
+                    <path d="M25,20 Q45,50 25,80 Q85,80 65,50 Q85,20 25,20" fill="none" stroke="currentColor" stroke-width="2"/>
+                    <path d="M20,20 Q40,50 20,80" fill="none" stroke="currentColor" stroke-width="2"/>
+                </svg>
+                XOR
+            </div>
         </div>
-        
-        <div class="input-group">
-            <input type="number" id="x" placeholder="X координата">
-            <input type="number" id="y" placeholder="Y координата">
-            <button onclick="checkSolution()">Найти сокровище</button>
+
+        <!-- Рабочая область -->
+        <div class="workspace">
+            <div id="circuit-board"></div>
         </div>
-        
-        <div class="success-message" id="success">Сокровище найдено!</div>
-        <div class="error-message" id="error"></div>
-        <div class="proof" id="proof"></div>
+
+        <!-- Панель информации -->
+        <div class="info-panel">
+            <div class="level-info">
+                <h2 class="level-title">Уровень 1</h2>
+                <p class="level-description">Создайте схему, реализующую операцию AND для двух входных сигналов.</p>
+            </div>
+
+            <table class="truth-table">
+                <thead>
+                    <tr>
+                        <th>Вход A</th>
+                        <th>Вход B</th>
+                        <th>Выход</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>0</td>
+                        <td>0</td>
+                        <td>0</td>
+                    </tr>
+                    <tr>
+                        <td>0</td>
+                        <td>1</td>
+                        <td>0</td>
+                    </tr>
+                    <tr>
+                        <td>1</td>
+                        <td>0</td>
+                        <td>0</td>
+                    </tr>
+                    <tr>
+                        <td>1</td>
+                        <td>1</td>
+                        <td>1</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <button class="verify-button" onclick="verifyCircuit()">Проверить решение</button>
+
+            <div class="proof-info" id="proof-output"></div>
+        </div>
     </div>
 
-    <script type="module">
-        import game from './src/game.js';
-        
-        window.game = game;
-        
-        function updateLevel() {
-            const levelData = game.generateLevel();
-            document.getElementById('level').textContent = levelData.level;
-            document.getElementById('hints').innerHTML = levelData.hints
-                .map(hint => `<div class="hint">${hint}</div>`)
-                .join('');
-            document.getElementById('success').style.display = 'none';
-            document.getElementById('error').style.display = 'none';
-            document.getElementById('marker').style.display = 'none';
-        }
-        
-        window.checkSolution = async function() {
-            const x = parseInt(document.getElementById('x').value);
-            const y = parseInt(document.getElementById('y').value);
-            
-            const result = await game.checkSolution(x, y);
-            
-            if (result.success) {
-                document.getElementById('score').textContent = result.score;
-                document.getElementById('proof').textContent = 
-                    `Доказательство сгенерировано: ${JSON.stringify(result.proof)}`;
-                document.getElementById('success').style.display = 'block';
-                document.getElementById('marker').style.display = 'block';
-                document.getElementById('marker').style.left = `${game.treasure.x}%`;
-                document.getElementById('marker').style.top = `${game.treasure.y}%`;
-                
-                setTimeout(() => {
-                    updateLevel();
-                }, 2000);
-            } else {
-                document.getElementById('error').textContent = result.message;
-                document.getElementById('error').style.display = 'block';
-            }
-        };
-        
-        // Инициализация игры
-        updateLevel();
-    </script>
+    <script type="module" src="src/game.js"></script>
 </body>
 </html>
